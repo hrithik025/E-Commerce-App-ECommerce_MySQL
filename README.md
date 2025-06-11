@@ -16,7 +16,7 @@ This is a fully functional ecommerce web application built using Next.js, React,
 - [Project Structure](#project-structure)
 - [Entity Relationship Diagram](#entity-relationship-diagram)
 - [Screenshots](#screenshots)
-- [About Me](#about-me)
+
 
 ## Features
 
