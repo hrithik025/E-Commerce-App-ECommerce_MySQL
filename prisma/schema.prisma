@@ -1,0 +1,411 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// To Create PrismaClient: npx prisma generate
+// To Create Migrations: npx prisma migrate dev --name init
+// To Reset & seed the Database: npx prisma db push --force-reset && npx prisma db seed && cd prisma && call CreateConsolidatedScripts.bat && call ExecuteSQLScripts.bat && cd ..
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("ECOMMERCE_DATABASE")
+}
+
+model FileStoreConfig {
+  Id              BigInt    @id @default(autoincrement())
+  CreatedTime     DateTime  @default(now())
+  UpdatedTime     DateTime? @updatedAt()
+  IsActive        Boolean
+  Name            String    @db.VarChar(50)
+  FileStoragePath String    @db.VarChar(250)
+
+  UserImages    UserImage[]
+  ProductImages ProductImage[]
+
+  @@map("FileStoreConfigs")
+}
+
+model User {
+  Id                  BigInt    @id @default(autoincrement())
+  CreatedTime         DateTime  @default(now())
+  UpdatedTime         DateTime? @updatedAt()
+  UniqueId            String    @default(cuid())
+  FirstName           String    @db.VarChar(50)
+  LastName            String    @db.VarChar(50)
+  PhoneNumber         String    @db.VarChar(10)
+  Email               String    @unique @db.VarChar(50)
+  Password            String    @db.VarChar(64)
+  LastPasswordUpdated DateTime?
+  LastAccessedTime    DateTime?
+  IsActive            Boolean
+  ActivationDate      DateTime?
+  DeactivationDate    DateTime?
+
+  UserAddresses Address[]
+  UserReviews   Review[]
+  UserImage     UserImage?
+  UserOrders    Order[]
+  UserWishlists Wishlist[]
+  UserCarts     Cart[]
+  UserCoupons   UserCoupon[]
+
+  @@map("Users")
+}
+
+model UserImage {
+  Id                BigInt          @id @default(autoincrement())
+  CreatedTime       DateTime        @default(now())
+  UpdatedTime       DateTime?       @updatedAt()
+  FileName          String          @db.VarChar(100)
+  FileExtension     String          @db.VarChar(5)
+  FileStoreConfigId BigInt
+  FileStore         FileStoreConfig @relation(fields: [FileStoreConfigId], references: [Id])
+  UserId            BigInt          @unique
+  User              User            @relation(fields: [UserId], references: [Id])
+
+  @@map("UserImages")
+}
+
+model ProductCategory {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  Name        String    @unique
+  Label       String
+  IsActive    Boolean
+
+  Products Product[]
+
+  @@map("ProductCategories")
+}
+
+model TaxType {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  Name        String    @unique @db.VarChar(100)
+  IsActive    Boolean
+
+  Countries Country[]
+
+  @@map("TaxTypes")
+}
+
+model Country {
+  Id             BigInt    @id @default(autoincrement())
+  CreatedTime    DateTime  @default(now())
+  UpdatedTime    DateTime? @updatedAt()
+  Name           String    @unique @db.VarChar(100)
+  IsActive       Boolean
+  ISOCode        String    @unique @db.VarChar(4)
+  CurrencyCode   String    @db.VarChar(4)
+  CurrencySymbol String    @db.VarChar(255)
+  TaxRate        Decimal   @db.Decimal(16, 2)
+  TaxTypeId      BigInt
+  TaxType        TaxType   @relation(fields: [TaxTypeId], references: [Id])
+
+  States State[]
+
+  @@map("Countries")
+}
+
+model State {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  Name        String    @unique @db.VarChar(100)
+  IsActive    Boolean
+  TaxRate     Decimal   @db.Decimal(16, 2)
+  CountryId   BigInt
+  Country     Country   @relation(fields: [CountryId], references: [Id])
+
+  Addresses Address[]
+
+  @@map("States")
+}
+
+model Address {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  IsActive    Boolean
+  FirstName   String    @db.VarChar(50)
+  LastName    String    @db.VarChar(50)
+  PhoneNumber String    @db.VarChar(10)
+  Email       String    @unique @db.VarChar(50)
+  Address     String    @db.VarChar(250)
+  Landmark    String?   @db.VarChar(100)
+  PinCode     String    @db.VarChar(6)
+  City        String    @db.VarChar(50)
+  StateId     BigInt
+  State       State     @relation(fields: [StateId], references: [Id])
+  UserId      BigInt
+  User        User      @relation(fields: [UserId], references: [Id])
+
+  OrderProductAddresses       OrderProduct[]
+  OrderProductDetailAddresses OrderProductDetail[]
+
+  @@map("Addresses")
+}
+
+model VariantCategoryConfig {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  IsActive    Boolean
+  Name        String    @db.VarChar(100)
+  Label       String    @db.VarChar(100)
+
+  VariantCategoryValues VariantCategoryValueConfig[]
+  ProductVariantDetails ProductVariantDetail[]
+
+  @@map("VariantCategoryConfigs")
+}
+
+model VariantCategoryValueConfig {
+  Id                BigInt                @id @default(autoincrement())
+  CreatedTime       DateTime              @default(now())
+  UpdatedTime       DateTime?             @updatedAt()
+  IsActive          Boolean
+  VariantCategoryId BigInt
+  VariantCategory   VariantCategoryConfig @relation(fields: [VariantCategoryId], references: [Id])
+  Name              String                @db.VarChar(100)
+  Label             String                @db.VarChar(100)
+
+  ProductVariantDetails ProductVariantDetail[]
+
+  @@map("VariantCategoryValueConfigs")
+}
+
+model Product {
+  Id                BigInt          @id @default(autoincrement())
+  CreatedTime       DateTime        @default(now())
+  UpdatedTime       DateTime?       @updatedAt()
+  IsActive          Boolean
+  Name              String          @unique @db.VarChar(100)
+  Label             String          @db.VarChar(250)
+  ProductCategoryId BigInt
+  ProductCategory   ProductCategory @relation(fields: [ProductCategoryId], references: [Id])
+
+  ProductVariants ProductVariant[]
+
+  @@map("Products")
+}
+
+model ProductImage {
+  Id                BigInt          @id @default(autoincrement())
+  CreatedTime       DateTime        @default(now())
+  UpdatedTime       DateTime?       @updatedAt()
+  IsActive          Boolean
+  FileName          String          @db.VarChar(100)
+  FileExtension     String          @db.VarChar(5)
+  FileStoreConfigId BigInt
+  FileStore         FileStoreConfig @relation(fields: [FileStoreConfigId], references: [Id])
+  ProductVariantId  BigInt
+  ProductVariant    ProductVariant  @relation(fields: [ProductVariantId], references: [Id])
+
+  @@map("ProductImages")
+}
+
+model ProductVariant {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  IsActive    Boolean
+  IsDefault   Boolean
+  Name        String    @db.VarChar(500)
+  Label       String    @db.VarChar(500)
+  ProductId   BigInt
+  Product     Product   @relation(fields: [ProductId], references: [Id])
+  Quantity    Int
+  Price       Decimal   @db.Decimal(16, 2)
+  Discount    Int
+  Description String    @db.Text
+
+  ProductVariantDetails ProductVariantDetail[]
+  ProductVariantReviews Review[]
+  WishlistProducts      WishlistProduct[]
+  OrderProducts         OrderProduct[]
+  CartProducts          CartProduct[]
+  ProductImages         ProductImage[]
+  ProductSpecifications ProductSpecification[]
+
+  @@map("ProductVariants")
+}
+
+model ProductVariantDetail {
+  Id                BigInt                     @id @default(autoincrement())
+  CreatedTime       DateTime                   @default(now())
+  UpdatedTime       DateTime?                  @updatedAt()
+  IsActive          Boolean
+  ProductVariantId  BigInt
+  ProductVariant    ProductVariant             @relation(fields: [ProductVariantId], references: [Id])
+  VariantCategoryId BigInt
+  VariantCategory   VariantCategoryConfig      @relation(fields: [VariantCategoryId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+  VariantValueId    BigInt
+  VariantValue      VariantCategoryValueConfig @relation(fields: [VariantValueId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("ProductVariantDetails")
+}
+
+model Review {
+  Id               BigInt         @id @default(autoincrement())
+  CreatedTime      DateTime       @default(now())
+  UpdatedTime      DateTime?      @updatedAt()
+  UserId           BigInt
+  User             User           @relation(fields: [UserId], references: [Id])
+  ProductVariantId BigInt
+  ProductVariant   ProductVariant @relation(fields: [ProductVariantId], references: [Id])
+  NoOfStars        Decimal        @db.Decimal(4, 2)
+  Comment          String         @db.Text
+  PostedDate       DateTime
+
+  @@map("Reviews")
+}
+
+model Wishlist {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  UserId      BigInt
+  User        User      @relation(fields: [UserId], references: [Id])
+
+  WishlistProducts WishlistProduct[]
+
+  @@map("Wishlists")
+}
+
+model WishlistProduct {
+  Id               BigInt         @id @default(autoincrement())
+  CreatedTime      DateTime       @default(now())
+  UpdatedTime      DateTime?      @updatedAt()
+  AddedDate        DateTime
+  IsActive         Boolean
+  WishlistId       BigInt
+  Wishlist         Wishlist       @relation(fields: [WishlistId], references: [Id])
+  ProductVariantId BigInt
+  ProductVariant   ProductVariant @relation(fields: [ProductVariantId], references: [Id])
+
+  @@map("WishlistProducts")
+}
+
+model Cart {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  UserId      BigInt
+  User        User      @relation(fields: [UserId], references: [Id])
+
+  CartProducts CartProduct[]
+
+  @@map("Carts")
+}
+
+model CartProduct {
+  Id               BigInt         @id @default(autoincrement())
+  CreatedTime      DateTime       @default(now())
+  UpdatedTime      DateTime?      @updatedAt()
+  Quantity         Int
+  AddedDate        DateTime
+  IsActive         Boolean
+  CartId           BigInt
+  Cart             Cart           @relation(fields: [CartId], references: [Id])
+  ProductVariantId BigInt
+  ProductVariant   ProductVariant @relation(fields: [ProductVariantId], references: [Id])
+
+  @@map("CartProducts")
+}
+
+model Order {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  UserId      BigInt
+  User        User      @relation(fields: [UserId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+  TotalPrice  Decimal   @db.Decimal(16, 2)
+
+  OrderProducts OrderProduct[]
+  OrderCoupons  UserCoupon[]
+
+  @@map("Orders")
+}
+
+model OrderProduct {
+  Id                 BigInt               @id @default(autoincrement())
+  CreatedTime        DateTime             @default(now())
+  UpdatedTime        DateTime?            @updatedAt()
+  Quantity           Int
+  Price              Decimal              @db.Decimal(16, 2)
+  Status             String
+  OrderDate          DateTime
+  DeliveryDate       DateTime?
+  OrderId            BigInt
+  Order              Order                @relation(fields: [OrderId], references: [Id])
+  ProductVariantId   BigInt
+  ProductVariant     ProductVariant       @relation(fields: [ProductVariantId], references: [Id])
+  AddressId          BigInt
+  Address            Address              @relation(fields: [AddressId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+  RandomId           String               @unique @db.VarChar(15)
+  OrderProductDetail OrderProductDetail[]
+
+  @@map("OrderProducts")
+}
+
+model OrderProductDetail {
+  Id             BigInt       @id @default(autoincrement())
+  CreatedTime    DateTime     @default(now())
+  UpdatedTime    DateTime?    @updatedAt()
+  OrderProductId BigInt
+  OrderProduct   OrderProduct @relation(fields: [OrderProductId], references: [Id])
+  AddressId      BigInt
+  Address        Address      @relation(fields: [AddressId], references: [Id])
+  ReachedDate    DateTime
+
+  @@map("OrderProductDetails")
+}
+
+model Coupon {
+  Id                  BigInt    @id @default(autoincrement())
+  CreatedTime         DateTime  @default(now())
+  UpdatedTime         DateTime? @updatedAt()
+  IsActive            Boolean
+  CouponCode          String    @db.VarChar(50)
+  MaxNoOfUsagePerUser BigInt
+  Discount            Int
+
+  UserCoupons UserCoupon[]
+
+  @@map("Coupons")
+}
+
+model UserCoupon {
+  Id          BigInt    @id @default(autoincrement())
+  CreatedTime DateTime  @default(now())
+  UpdatedTime DateTime? @updatedAt()
+  CouponId    BigInt
+  Coupon      Coupon    @relation(fields: [CouponId], references: [Id])
+  UserId      BigInt
+  User        User      @relation(fields: [UserId], references: [Id])
+  OrderId     BigInt
+  Order       Order     @relation(fields: [OrderId], references: [Id])
+
+  @@map("UserCoupons")
+}
+
+model ProductSpecification {
+  Id               BigInt         @id @default(autoincrement())
+  CreatedTime      DateTime       @default(now())
+  UpdatedTime      DateTime?      @updatedAt()
+  Key              String         @db.VarChar(100)
+  Value            String         @db.Text
+  ProductVariantId BigInt
+  ProductVariant   ProductVariant @relation(fields: [ProductVariantId], references: [Id])
+
+  @@map("ProductSpecifications")
+}
